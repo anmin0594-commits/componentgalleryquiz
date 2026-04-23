@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI 디자인 용어 퀴즈</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .app-container { width: 400px; height: 600px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 20px; box-sizing: border-box; text-align: center; position: relative; overflow: hidden; }
+        
+        /* 타이머 영역 */
+        .header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 20px; font-size: 1.1rem; }
+        .total-time { color: #d32f2f; }
+        .question-time { background: #ffebee; color: #c62828; padding: 5px 15px; border-radius: 20px; }
+        
+        /* 카드 영역 */
+        .card { background: #fafafa; border: 2px solid #e0e0e0; border-radius: 15px; padding: 30px 20px; margin-bottom: 20px; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: background 0.3s; }
+        .card-icon { font-size: 3rem; margin-bottom: 15px; }
+        .card-desc { font-size: 1.1rem; word-break: keep-all; line-height: 1.4; color: #333; font-weight: bold; }
+        
+        /* 버튼 영역 */
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .option-btn { background: white; border: 2px solid #2196f3; color: #2196f3; padding: 15px 10px; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.2s; word-break: keep-all; line-height: 1.2; }
+        .option-btn:hover { background: #e3f2fd; }
+        .option-btn.correct { background: #4caf50 !important; color: white !important; border-color: #4caf50 !important; }
+        .option-btn.wrong { background: #f44336 !important; color: white !important; border-color: #f44336 !important; }
+        
+        /* 화면 전환 */
+        .screen { display: none; height: 100%; flex-direction: column; justify-content: center; }
+        .screen.active { display: flex; }
+        
+        /* 시작/종료 화면 */
+        .start-btn, .restart-btn { background: #ff5722; color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 30px; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; }
+        .start-btn:active, .restart-btn:active { transform: scale(0.95); }
+        .score-text { font-size: 2.5rem; font-weight: bold; color: #2196f3; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- 시작 화면 -->
+    <div id="startScreen" class="screen active">
+        <h2>수업 자료 제작<br>UI 용어 스피드 퀴즈</h2>
+        <p>✔ 총 30초 동안 진행됩니다.<br>✔ 각 문제당 제한 시간은 5초입니다.<br>✔ 알맞은 명칭을 빠르게 선택하세요!</p>
+        <button class="start-btn" onclick="startGame()">게임 시작</button>
+    </div>
+
+    <!-- 게임 화면 -->
+    <div id="gameScreen" class="screen" style="justify-content: flex-start;">
+        <div class="header">
+            <div>남은 시간: <span id="totalTimeUI" class="total-time">30</span>초</div>
+            <div class="question-time">⏱ <span id="qTimeUI">5</span></div>
+        </div>
+        
+        <div id="card" class="card">
+            <div id="cardIcon" class="card-icon">📁</div>
+            <div id="cardDesc" class="card-desc">설명 텍스트</div>
+        </div>
+
+        <div class="options-grid" id="optionsContainer">
+            <!-- 버튼이 동적으로 생성됨 -->
+        </div>
+    </div>
+
+    <!-- 종료 화면 -->
+    <div id="endScreen" class="screen">
+        <h2>게임 종료!</h2>
+        <p>당신의 최종 점수는?</p>
+        <div class="score-text"><span id="finalScore">0</span>점</div>
+        <button class="restart-btn" onclick="resetGame()">다시 하기</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { name: "탭 (Tabs)", icon: "📁", desc: "여러 화면이나 콘텐츠 영역을 상단 버튼을 통해 전환할 때" },
+        { name: "캐러셀 (Carousel)", icon: "🎠", desc: "이미지나 콘텐츠를 좌우로 슬라이드하여 넘겨볼 때 (콘텐츠 슬라이더)" },
+        { name: "트리 뷰 (Tree View)", icon: "🌳", desc: "정보의 '위계(계층)'가 중요할 때 사용하는 폴더 구조" },
+        { name: "아코디언 (Accordion)", icon: "🪗", desc: "클릭하면 상세 내용이 아래로 펼쳐지고 다시 클릭하면 접히는 요소" },
+        { name: "토글 (Toggle)", icon: "🎚️", desc: "설정을 켜고 끄는(On/Off) 두 가지 상태를 제어 (스위치)" },
+        { name: "텍스트 인풋 (Text Input)", icon: "⌨️", desc: "짧은 한 줄짜리 텍스트를 입력하는 칸" },
+        { name: "텍스트 영역 (Text Area)", icon: "📝", desc: "여러 줄의 긴 텍스트를 입력하는 넓은 칸" },
+        { name: "체크박스 (Check Box)", icon: "☑️", desc: "여러 개의 옵션 중에서 '다중 선택'이 필요할 때" },
+        { name: "라디오 버튼 (Radio Button)", icon: "🔘", desc: "여러 개의 옵션 중에서 '단 하나만 선택'해야 할 때" },
+        { name: "콤보박스 (Combo Box)", icon: "🔍", desc: "목록이 많을 때 추천! 타이핑해서 검색할 수 있는 펼침 목록" },
+        { name: "드롭다운 (Dropdown)", icon: "🔽", desc: "콤보박스와 유사하지만, '목록이 많지 않을 때' 주로 사용" },
+        { name: "팝 오버 (Popover)", icon: "💬", desc: "'클릭'하면 주변에 나타나는 말풍선 형태의 추가 정보창" },
+        { name: "툴팁 (Tooltip)", icon: "🖱️", desc: "'마우스 오버(호버링)' 하면 나타나는 작은 설명 창" },
+        { name: "슬라이더 (Slider)", icon: "🎛️", desc: "막대 위를 마우스로 드래그하여 수치나 단계를 조절" },
+        { name: "페이지네이션 (Pagination)", icon: "🔢", desc: "콘텐츠가 많을 때 하단에 여러 페이지 번호를 매겨 이동하게 함" },
+        { name: "토스트 (Toast)", icon: "🍞", desc: "잠시 나타났다 사라지는 알림 메시지 (ex: 저장되었습니다.)" }
+    ];
+
+    let totalTime = 30;
+    let questionTime = 5;
+    let score = 0;
+    let totalTimer, questionTimer;
+    let currentAnswer = "";
+    let isClickable = true;
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function startGame() {
+        totalTime = 30;
+        score = 0;
+        document.getElementById('totalTimeUI').innerText = totalTime;
+        showScreen('gameScreen');
+        
+        totalTimer = setInterval(() => {
+            totalTime--;
+            document.getElementById('totalTimeUI').innerText = totalTime;
+            if (totalTime <= 0) endGame();
+        }, 1000);
+
+        setNextQuestion();
+    }
+
+    function setNextQuestion() {
+        isClickable = true;
+        clearInterval(questionTimer);
+        questionTime = 5;
+        document.getElementById('qTimeUI').innerText = questionTime;
+        document.getElementById('card').style.background = "#fafafa";
+
+        // 랜덤 문제 선택
+        const target = quizData[Math.floor(Math.random() * quizData.length)];
+        currentAnswer = target.name;
+        
+        document.getElementById('cardIcon').innerText = target.icon;
+        document.getElementById('cardDesc').innerText = target.desc;
+
+        // 보기 4개 만들기 (정답 1 + 오답 3)
+        let options = [target.name];
+        let others = quizData.filter(q => q.name !== target.name).sort(() => 0.5 - Math.random());
+        options.push(others[0].name, others[1].name, others[2].name);
+        options.sort(() => 0.5 - Math.random()); // 보기 섞기
+
+        const container = document.getElementById('optionsContainer');
+        container.innerHTML = "";
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(btn, opt);
+            container.appendChild(btn);
+        });
+
+        // 5초 카운트다운 시작
+        questionTimer = setInterval(() => {
+            questionTime--;
+            document.getElementById('qTimeUI').innerText = questionTime;
+            if (questionTime <= 0) {
+                clearInterval(questionTimer);
+                showCorrectAnswer(); // 시간 초과 시 오답 처리 및 다음으로
+            }
+        }, 1000);
+    }
+
+    function checkAnswer(btn, selected) {
+        if (!isClickable) return;
+        isClickable = false;
+        clearInterval(questionTimer);
+
+        if (selected === currentAnswer) {
+            btn.classList.add('correct');
+            document.getElementById('card').style.background = "#e8f5e9";
+            score += 10;
+        } else {
+            btn.classList.add('wrong');
+            document.getElementById('card').style.background = "#ffebee";
+            // 정답 버튼도 초록색으로 표시
+            Array.from(document.querySelectorAll('.option-btn')).forEach(b => {
+                if(b.innerText === currentAnswer) b.classList.add('correct');
+            });
+        }
+
+        setTimeout(setNextQuestion, 600); // 0.6초 후 다음 문제
+    }
+
+    function showCorrectAnswer() {
+        isClickable = false;
+        document.getElementById('card').style.background = "#ffebee";
+        Array.from(document.querySelectorAll('.option-btn')).forEach(b => {
+            if(b.innerText === currentAnswer) b.classList.add('correct');
+        });
+        setTimeout(setNextQuestion, 600);
+    }
+
+    function endGame() {
+        clearInterval(totalTimer);
+        clearInterval(questionTimer);
+        document.getElementById('finalScore').innerText = score;
+        showScreen('endScreen');
+    }
+
+    function resetGame() {
+        showScreen('startScreen');
+    }
+</script>
+
+</body>
+</html>
